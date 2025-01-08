@@ -1,5 +1,8 @@
-from sqlmodel import SQLModel
+from typing import Optional
+
+from sqlmodel import Field, SQLModel
 
 
 class Card(SQLModel, table=True):
-    pubkey: str
+    id: Optional[int] = Field(default=None, primary_key=True)
+    pubkey: str = Field(index=True, unique=True)
