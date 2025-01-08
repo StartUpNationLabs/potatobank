@@ -4,14 +4,15 @@ from fastapi import APIRouter, HTTPException
 from sqlmodel import select
 
 from src.database import SessionDep, save
-from src.models.card import Card
-from src.models.cart import Cart
+from src.models.card import Card, CardDTO
+from src.models.cart import Cart, CartDTO
 from src.security import security_manager
 
 router = APIRouter()
 
+
 @router.get("/cart/{pubkey_base64}")
-async def get_cart(pubkey_base64: str, session: SessionDep) -> List[str]:
+async def get_cart(card_dto: CardDTO, session: SessionDep) -> List[str]:
     """
     Get the cart of a user<br>
     <br>
@@ -21,12 +22,10 @@ async def get_cart(pubkey_base64: str, session: SessionDep) -> List[str]:
     """
     try:
         # Decrypt the encrypted public key
-        decrypted_pubkey = security_manager.decrypt(pubkey_base64)
+        decrypted_pubkey = security_manager.decrypt(card_dto.pubkey_base64)
 
         # Verify card exists
-        card = session.exec(
-            select(Card).where(Card.pubkey == decrypted_pubkey)
-        ).first()
+        card = session.exec(select(Card).where(Card.pubkey == decrypted_pubkey)).first()
 
         if not card:
             raise HTTPException(status_code=404, detail="Card not found")
@@ -43,8 +42,9 @@ async def get_cart(pubkey_base64: str, session: SessionDep) -> List[str]:
     except Exception:
         raise HTTPException(status_code=500, detail="Internal server error")
 
+
 @router.post("/cart/{pubkey_base64}")
-async def post_cart(pubkey_base64: str, cart_base64: str, session: SessionDep) -> bool:
+async def post_cart(card_dto: CardDTO, cart_dto: CartDTO, session: SessionDep) -> bool:
     """
     Add a cart to a user<br>
     <br>
@@ -55,20 +55,17 @@ async def post_cart(pubkey_base64: str, cart_base64: str, session: SessionDep) -
     """
     try:
         # Decrypt the encrypted public key
-        decrypted_pubkey = security_manager.decrypt(pubkey_base64)
+        decrypted_pubkey = security_manager.decrypt(card_dto.pubkey_base64)
 
         # Verify card exists
-        card = session.exec(
-            select(Card).where(Card.pubkey == decrypted_pubkey)
-        ).first()
+        card = session.exec(select(Card).where(Card.pubkey == decrypted_pubkey)).first()
 
         if not card:
             raise HTTPException(status_code=404, detail="Card not found")
 
         # Create new cart
         cart = Cart(
-            card_pubkey=decrypted_pubkey,
-            encrypted_content=cart_base64
+            card_pubkey=decrypted_pubkey, encrypted_content=cart_dto.cart_base64
         )
         save(session, cart)
 

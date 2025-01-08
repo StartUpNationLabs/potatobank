@@ -2,13 +2,14 @@ from fastapi import APIRouter, HTTPException
 from sqlmodel import select
 
 from src.database import SessionDep, save
-from src.models.card import Card
+from src.models.card import Card, CardDTO
 from src.security import security_manager
 
 router = APIRouter()
 
+
 @router.post("/cards/")
-def create_card(pubkey_base64: str, session: SessionDep):
+def create_card(card_dto: CardDTO, session: SessionDep):
     """
     Create a new card.<br>
     <br>
@@ -18,7 +19,7 @@ def create_card(pubkey_base64: str, session: SessionDep):
     """
     try:
         # Decrypt the encrypted public key
-        decrypted_pubkey = security_manager.decrypt(pubkey_base64)
+        decrypted_pubkey = security_manager.decrypt(card_dto.pubkey_base64)
 
         # Check if card already exists
         existing_card = session.exec(
@@ -29,15 +30,11 @@ def create_card(pubkey_base64: str, session: SessionDep):
             raise HTTPException(status_code=400, detail="Card already exists")
 
         # Create new card
-        card = Card(pubkey=decrypted_pubkey)
-        save(session, card)
-
-        # Sign the response
-        signature = security_manager.sign(decrypted_pubkey)
+        new_card = Card(pubkey=decrypted_pubkey)
+        save(session, new_card)
 
         return {
             "pubkey": decrypted_pubkey,
-            "signature": signature
         }
 
     except ValueError as e:
