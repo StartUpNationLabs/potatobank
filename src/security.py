@@ -37,15 +37,14 @@ class SecurityManager:
         Decrypt data that was encrypted with the server's public key
 
         Args:
-            encrypted_data: Base64 encoded encrypted data
+            encrypted_data: Encrypted data
 
         Returns:
             Decrypted data as string
         """
         try:
-            encrypted_bytes = base64.b64decode(encrypted_data)
             decrypted_data = self._private_key.decrypt(
-                encrypted_bytes,
+                encrypted_data.encode(),
                 padding.OAEP(
                     mgf=padding.MGF1(algorithm=hashes.SHA256()),
                     algorithm=hashes.SHA256(),
@@ -56,21 +55,20 @@ class SecurityManager:
         except Exception as e:
             raise ValueError(f"Decryption failed: {str(e)}")
 
-    def encrypt(self, data: str, public_key_base64: str) -> str:
+    def encrypt(self, data: str, public_key: str) -> str:
         """
         Encrypt data with a provided public key
 
         Args:
             data: String to encrypt
-            public_key_base64: Base64 encoded public key to encrypt with
+            public_key: Public key string to encrypt with
 
         Returns:
             Base64 encoded encrypted data
         """
         try:
-            public_key_bytes = base64.b64decode(public_key_base64)
             public_key = serialization.load_pem_public_key(
-                public_key_bytes, backend=default_backend()
+                public_key.encode(), backend=default_backend()
             )
             encrypted_data = public_key.encrypt(
                 data.encode("utf-8"),
@@ -92,7 +90,7 @@ class SecurityManager:
             data: String to sign
 
         Returns:
-            Base64 encoded signature
+            Signature
         """
         signature = self._private_key.sign(
             data.encode("utf-8"),
@@ -101,28 +99,26 @@ class SecurityManager:
             ),
             hashes.SHA256(),
         )
-        return base64.b64encode(signature).decode("utf-8")
+        return signature.decode("utf-8")
 
-    def verify_signature(
-        self, data: str, signature: str, public_key_base64: str
-    ) -> bool:
+    def verify_signature(self, data: str, signature: str, public_key: str) -> bool:
         """
         Verify a signature using a public key
 
         Args:
             data: Original data that was signed
-            signature: Base64 encoded signature
-            public_key_base64: Base64 encoded public key to verify with
+            signature: signature
+            public_key_base64: public key to verify with
 
         Returns:
             True if signature is valid, False otherwise
         """
         try:
-            public_key_bytes = base64.b64decode(public_key_base64)
+            public_key_bytes = public_key.encode("utf-8")
             public_key = serialization.load_pem_public_key(
                 public_key_bytes, backend=default_backend()
             )
-            signature_bytes = base64.b64decode(signature)
+            signature_bytes = signature.encode("utf-8")
 
             public_key.verify(
                 signature_bytes,

@@ -13,7 +13,7 @@ def create_card(card_dto: CardDTO, session: SessionDep):
     """
     Create a new card.<br>
     <br>
-    :param pubkey_base64: The base64-encoded public key of the card encrypted with the bank's public key.<br>
+    :param pubkey_base64: The public key of the card encrypted with the bank's public key.<br>
     <br>
     :return: The newly created card.
     """
