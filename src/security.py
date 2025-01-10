@@ -3,31 +3,34 @@ import base64
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import padding, rsa
+from cryptography.hazmat.primitives.asymmetric import padding
 
 
 class SecurityManager:
     def __init__(self):
         self._private_key = None
         self._public_key = None
-        self._generate_keys()
+        self._load_keys()
 
-    def _generate_keys(self) -> None:
-        """Generate RSA key pair (2048 bits)"""
-        self._private_key = rsa.generate_private_key(
-            public_exponent=65537,
-            key_size=2048,
-            backend=default_backend()
-        )
-        self._public_key = self._private_key.public_key()
+    def _load_keys(self) -> None:
+        """Load RSA key pair from files"""
+        with open("server.pem", "rb") as key_file:
+            self._private_key = serialization.load_pem_private_key(
+                key_file.read(), password=None, backend=default_backend()
+            )
+
+        with open("server.pub", "rb") as key_file:
+            self._public_key = serialization.load_pem_public_key(
+                key_file.read(), backend=default_backend()
+            )
 
     def get_public_key_base64(self) -> str:
         """Return the public key in base64 format"""
         pem = self._public_key.public_bytes(
             encoding=serialization.Encoding.PEM,
-            format=serialization.PublicFormat.SubjectPublicKeyInfo
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
         )
-        return base64.b64encode(pem).decode('utf-8')
+        return base64.b64encode(pem).decode("utf-8")
 
     def decrypt(self, encrypted_data: str) -> str:
         """
@@ -46,10 +49,10 @@ class SecurityManager:
                 padding.OAEP(
                     mgf=padding.MGF1(algorithm=hashes.SHA256()),
                     algorithm=hashes.SHA256(),
-                    label=None
-                )
+                    label=None,
+                ),
             )
-            return decrypted_data.decode('utf-8')
+            return decrypted_data.decode("utf-8")
         except Exception as e:
             raise ValueError(f"Decryption failed: {str(e)}")
 
@@ -67,18 +70,17 @@ class SecurityManager:
         try:
             public_key_bytes = base64.b64decode(public_key_base64)
             public_key = serialization.load_pem_public_key(
-                public_key_bytes,
-                backend=default_backend()
+                public_key_bytes, backend=default_backend()
             )
             encrypted_data = public_key.encrypt(
-                data.encode('utf-8'),
+                data.encode("utf-8"),
                 padding.OAEP(
                     mgf=padding.MGF1(algorithm=hashes.SHA256()),
                     algorithm=hashes.SHA256(),
-                    label=None
-                )
+                    label=None,
+                ),
             )
-            return base64.b64encode(encrypted_data).decode('utf-8')
+            return base64.b64encode(encrypted_data).decode("utf-8")
         except Exception as e:
             raise ValueError(f"Encryption failed: {str(e)}")
 
@@ -93,16 +95,17 @@ class SecurityManager:
             Base64 encoded signature
         """
         signature = self._private_key.sign(
-            data.encode('utf-8'),
+            data.encode("utf-8"),
             padding.PSS(
-                mgf=padding.MGF1(hashes.SHA256()),
-                salt_length=padding.PSS.MAX_LENGTH
+                mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH
             ),
-            hashes.SHA256()
+            hashes.SHA256(),
         )
-        return base64.b64encode(signature).decode('utf-8')
+        return base64.b64encode(signature).decode("utf-8")
 
-    def verify_signature(self, data: str, signature: str, public_key_base64: str) -> bool:
+    def verify_signature(
+        self, data: str, signature: str, public_key_base64: str
+    ) -> bool:
         """
         Verify a signature using a public key
 
@@ -117,25 +120,25 @@ class SecurityManager:
         try:
             public_key_bytes = base64.b64decode(public_key_base64)
             public_key = serialization.load_pem_public_key(
-                public_key_bytes,
-                backend=default_backend()
+                public_key_bytes, backend=default_backend()
             )
             signature_bytes = base64.b64decode(signature)
 
             public_key.verify(
                 signature_bytes,
-                data.encode('utf-8'),
+                data.encode("utf-8"),
                 padding.PSS(
                     mgf=padding.MGF1(hashes.SHA256()),
-                    salt_length=padding.PSS.MAX_LENGTH
+                    salt_length=padding.PSS.MAX_LENGTH,
                 ),
-                hashes.SHA256()
+                hashes.SHA256(),
             )
             return True
         except InvalidSignature:
             return False
         except Exception:
             return False
+
 
 # Create a singleton instance
 security_manager = SecurityManager()
