@@ -9,4 +9,4 @@ class Card(SQLModel, table=True):
 
 
 class CardDTO(SQLModel):
-    pubkey_base64: str
+    pubkey: str

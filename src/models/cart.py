@@ -4,7 +4,7 @@ from sqlmodel import Field, SQLModel
 
 
 class CartDTO(SQLModel):
-    cart_base64: str
+    contents: str
 
 
 class Cart(SQLModel, table=True):
