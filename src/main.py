@@ -5,7 +5,15 @@ from fastapi.responses import RedirectResponse
 from .database import create_db_and_tables
 from .routes import card, cart, keys
 
-app = FastAPI()
+app = FastAPI(
+    title="PotatoBank API",
+    servers=[
+        {
+            "url": "https://potatobank.knative.apoorva64.com",
+            "description": "Production server",
+        }
+    ],
+)
 
 origins = ["*"]
 app.add_middleware(
