@@ -19,7 +19,7 @@ def create_card(card_dto: CardDTO, session: SessionDep):
     """
     try:
         # Decrypt the encrypted public key
-        decrypted_pubkey = security_manager.decrypt(card_dto.pubkey_base64)
+        decrypted_pubkey = security_manager.decrypt(card_dto.pubkey)
 
         # Check if card already exists
         existing_card = session.exec(
@@ -55,7 +55,7 @@ def create_card_insecure(card_dto: CardDTO, session: SessionDep):
     """
     try:
         # No decryption - use pubkey directly
-        pubkey = card_dto.pubkey_base64
+        pubkey = card_dto.pubkey
 
         # Check if card already exists
         existing_card = session.exec(select(Card).where(Card.pubkey == pubkey)).first()
